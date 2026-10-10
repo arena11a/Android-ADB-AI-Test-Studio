@@ -1,0 +1,33 @@
+appId: studio.adb.ai
+electronVersion: 33.4.11
+productName: ADB AI Test Studio
+copyright: Local-only. Use only with devices and apps you own or may test.
+directories:
+  output: release
+files:
+  - dist-electron/**
+  - dist-renderer/**
+  - package.json
+asar: true
+extraResources:
+  # the Local Agent + MCP bridge, bundled by scripts/prepare-agent.mjs
+  - from: pack/agent
+    to: agent
+    filter:
+      - "**/*"
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+mac:
+  target:
+    - dmg
+  category: public.app-category.developer-tools
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}

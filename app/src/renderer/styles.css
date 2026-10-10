@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #f1f5f9;
+  --color-edge: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-2: #475569;
+  --color-ink-3: #94a3b8;
+  --color-brand: #2563eb;
+  --color-brand-ink: #1d4ed8;
+}
+
+html.dark {
+  --color-surface: #0f172a;
+  --color-surface-2: #131c2f;
+  --color-surface-3: #1e293b;
+  --color-edge: #1e293b;
+  --color-ink: #e2e8f0;
+  --color-ink-2: #a9b6c9;
+  --color-ink-3: #64748b;
+  --color-brand: #3b82f6;
+  --color-brand-ink: #60a5fa;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    font-family: ui-sans-serif, system-ui, "Segoe UI", "Noto Sans Thai", sans-serif;
+    background: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+  .dark body { background: #060b16; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--color-ink-3) 45%, transparent); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+}
+
+/* custom utilities (v4 style) — these can be used with @apply below */
+@utility btn {
+  @apply inline-flex select-none items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-medium;
+  @apply transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] shadow-sm;
+  }
+  .card-h {
+    @apply flex items-center gap-2 border-b border-[var(--color-edge)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-ink)];
+  }
+  .card-b { @apply p-4; }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-medium
+           transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary { @apply btn bg-[var(--color-brand)] text-white shadow-sm hover:bg-[var(--color-brand-ink)] hover:shadow; }
+  .btn-danger  { @apply btn bg-red-600 text-white shadow-sm hover:bg-red-500 hover:shadow; }
+  .btn-warn    { @apply btn bg-amber-500 text-white shadow-sm hover:bg-amber-400; }
+  .btn-ghost   { @apply btn border border-[var(--color-edge)] bg-[var(--color-surface)] text-[var(--color-ink-2)]
+                        hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]; }
+  .btn-quiet   { @apply btn text-[var(--color-ink-2)] hover:bg-[var(--color-surface-3)]; }
+  .btn-sm      { @apply rounded-lg px-2 py-1 text-xs; }
+
+  .input {
+    @apply w-full rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[13px]
+           text-[var(--color-ink)] outline-none transition-colors placeholder:text-[var(--color-ink-3)]
+           focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20;
+  }
+  .label { @apply mb-1 block text-[11px] font-medium uppercase tracking-wide text-[var(--color-ink-3)]; }
+  .mono  { @apply font-mono text-[11px]; }
+  .pill  { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+
+  .nav-item {
+    @apply flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors;
+  }
+  .nav-item-on  { @apply bg-[var(--color-brand)] text-white shadow-sm; }
+  .nav-item-off { @apply text-[var(--color-ink-2)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-ink)]; }
+
+  .skel { @apply animate-pulse rounded-lg bg-[var(--color-surface-3)]; }
+}
+
+@keyframes ks-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,.55); } 50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); } }
+.ks-active { animation: ks-pulse 1.4s ease-out infinite; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .18s ease-out both; }

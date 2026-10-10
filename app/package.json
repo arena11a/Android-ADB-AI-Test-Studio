@@ -1,0 +1,36 @@
+{
+  "name": "@adbstudio/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop UI for ADB AI Test Studio (Electron + React)",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "prepare-agent": "node scripts/prepare-agent.mjs",
+    "prepackage": "electron-vite build && node scripts/prepare-agent.mjs",
+    "package": "electron-builder --config electron-builder.yml",
+    "package:dir": "electron-builder --config electron-builder.yml --dir",
+    "start": "electron .",
+    "prepackage:dir": "electron-vite build && node scripts/prepare-agent.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "app-builder-bin": "^4.2.0",
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

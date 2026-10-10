@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "mode": "safe",
+  "role": "tester",
+  "targetPackages": [],
+  "features": {
+    "files": false,
+    "install": false,
+    "delete": false,
+    "input": false,
+    "power": false,
+    "advancedMode": false,
+    "liveView": false,
+    "repair": false,
+    "bootloader": false
+  },
+  "localApkDirs": ["~/adbstudio/apk"],
+  "files": {
+    "allow": [
+      "/sdcard/Download/adbstudio",
+      "/data/local/tmp/adbstudio",
+      "/sdcard/Android/data/{target}"
+    ],
+    "deny": [
+      "/system", "/vendor", "/product", "/apex", "/proc", "/sys", "/dev",
+      "/data/data", "/data/user", "/data/system", "/data/misc", "/efs", "/persist"
+    ],
+    "localDownloadDir": "~/Downloads/adb-studio-pulled",
+    "maxTextEditBytes": 1048576,
+    "backupBeforeOverwrite": true
+  },
+  "forbiddenTools": ["raw_shell", "root", "disable_security", "settings_write", "bootloader_ai", "fastboot_unlock_ai", "sideload_ai"],
+  "alwaysApprove": ["app_install", "app_uninstall", "app_clear_data", "file_push", "file_delete", "power_request_reboot", "device_connect",
+                    "app_disable", "app_revoke", "boot_reboot_target", "fastboot_reboot", "fastboot_unlock", "adb_sideload"],
+  "rateLimits": {
+    "toolCallsPerMinute": 120,
+    "inputPerSecond": 5,
+    "inputPerMinute": 120,
+    "installsPerHour": 10,
+    "deletesPerSession": 20,
+    "sameScreenRetries": 5
+  },
+  "session": {
+    "defaultMaxSteps": 100,
+    "defaultMaxSeconds": 900,
+    "aiSessionMaxSeconds": 3600,
+    "stopOnCrash": true,
+    "stopOnAnr": true,
+    "stopWhenLeavingTarget": true
+  },
+  "approval": {
+    "ttlSeconds": 120,
+    "allowTimeWindow": false,
+    "timeWindowSecondsMax": 300,
+    "neverPermanent": ["high", "critical"]
+  },
+  "ai": {
+    "logsTargetOnly": true,
+    "allowRawCoordinates": false,
+    "requireReason": true,
+    "dryRunDefault": false
+  },
+  "anomaly": {
+    "forbiddenRepeatThreshold": 3,
+    "forbiddenWindowSeconds": 60,
+    "massDeleteThreshold": 10,
+    "multiClearThreshold": 2,
+    "powerRepeatThreshold": 2,
+    "autoSafeModeOnAnomaly": true
+  },
+  "privacy": {
+    "localOnly": true,
+    "highPrivacyMode": true,
+    "recordScreenshots": true,
+    "recordVideo": false,
+    "redactLogs": true
+  }
+}

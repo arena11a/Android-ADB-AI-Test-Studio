@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "language": "th",
+  "theme": "system",
+  "adb": {
+    "path": "auto",
+    "serverHost": "127.0.0.1",
+    "commandTimeoutMs": 30000,
+    "installTimeoutMs": 300000
+  },
+  "scrcpy": { "path": "auto", "extraArgs": [] },
+  "media": { "shotsDir": "auto" },
+  "recording": { "remoteDir": "/sdcard/Movies/adbstudio", "pullDir": "auto", "maxSeconds": 180 },
+  "agent": {
+    "host": "127.0.0.1",
+    "port": 0,
+    "endpointFile": "~/.adbstudio/endpoint.json",
+    "tokenBytes": 32
+  },
+  "storage": {
+    "dataDir": "~/.adbstudio",
+    "database": "studio.sqlite",
+    "auditDir": "audit",
+    "artifactsDir": "sessions"
+  },
+  "metrics": { "defaultIntervalMs": 2000, "allowedIntervalsMs": [1000, 2000, 5000], "maxBufferPoints": 3600 },
+  "logs": { "ringBufferLines": 5000, "saveToFile": true },
+  "updates": { "autoCheck": false },
+  "ui": { "showFirstRunWarning": true, "requirePinForAdvanced": false }
+}
