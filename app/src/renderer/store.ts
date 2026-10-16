@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { translate } from "./i18n";
+import { getTranslateLang, translate } from "./i18n";
 import type {
   ApprovalRequest, AuditRow, ControlSnapshot, DeviceInfo, LogLine, MetricSample,
   Mode, PolicyFile, Risk, Session, ToolResult,
@@ -36,6 +36,10 @@ interface StudioState {
   audit: AuditRow[];
   scan: { loading: boolean; report: unknown; error: string | null };
   media: MediaState;
+  /** last scrcpy start failure, rendered inline on the Live page (localized there) */
+  scrcpyError: { code?: string; message: string } | null;
+  /** AI clients currently attached to the MCP socket */
+  aiClients: number;
   folders: Folders | null;
   db: DbState;
   theme: "system" | "light" | "dark";
@@ -71,12 +75,12 @@ interface StudioState {
   setTheme: (theme: "system" | "light" | "dark") => void;
   scrcpyStart: (opts?: Record<string, unknown>) => Promise<void>;
   scrcpyStop: () => Promise<void>;
+  refreshMedia: () => Promise<void>;
   recordStart: (seconds?: number) => Promise<void>;
   recordStop: () => Promise<void>;
   refreshDb: () => Promise<void>;
   refreshFolders: () => Promise<void>;
   runScan: () => Promise<void>;
-  setModeGuarded: (mode: string) => Promise<void>;
   saveScreenshot: () => Promise<void>;
   notify: (text: string, kind?: "info" | "warn" | "error") => void;
 }
@@ -102,6 +106,8 @@ export const useStudio = create<StudioState>()((set, get) => ({
   audit: [],
   scan: { loading: false, report: null, error: null },
   media: { scrcpy: { running: false }, record: { running: false } },
+  scrcpyError: null,
+  aiClients: 0,
   folders: null,
   db: { available: false, schemaVersion: 0, stats: {} },
   theme: ((localStorage.getItem("adbstudio.theme") as "system" | "light" | "dark") ?? "system"),
@@ -137,7 +143,7 @@ export const useStudio = create<StudioState>()((set, get) => ({
       if (!s.controlConnected && prev) get().notify(translate("toast.agent_dropped"), "warn");
     }));
 
-    on("policy:update", (p: unknown) => { set({ policy: p as unknown as PolicyFile }); void get().call("hello").then((h: ControlSnapshot) => set({ hello: h })); });
+    on("policy:update", (p: unknown) => { set({ policy: p as unknown as PolicyFile }); void get().call("hello").then((h: ControlSnapshot) => set({ hello: h, aiClients: h.aiClients ?? 0 })); });
     on("devices", (d: unknown) => set({ devices: (d as unknown as DeviceInfo[]) }));
     on("approval:added", (r: unknown) => set({ approvals: [...get().approvals, r as unknown as ApprovalRequest] }));
     on("approval:settled", (r: unknown) => {
@@ -168,9 +174,10 @@ export const useStudio = create<StudioState>()((set, get) => ({
     on("session:update", (s: unknown) => set({ session: (s as unknown as Session | null) }));
     on("audit:entry", (e: unknown) => set({ audit: [e as unknown as AuditRow, ...get().audit].slice(0, MAX_AUDIT) }));
     on("anomaly", (d: unknown) => get().notify(translate("toast.anomaly", { msg: (d as unknown as { message: string }).message }), "warn"));
-    on("metrics:error", (d: unknown) => get().notify(`metrics: ${(d as unknown as { message: string }).message}`, "warn"));
+    on("metrics:error", (d: unknown) => get().notify(translate("toast.metrics_error", { msg: (d as unknown as { message: string }).message }), "warn"));
     on("bye", () => get().notify(translate("toast.agent_closed"), "warn"));
     on("media:update", (d: unknown) => set({ media: d as MediaState }));
+    on("mcp:clients", (d: unknown) => set({ aiClients: (d as { count: number }).count }));
 
     void (async () => {
       try {
@@ -194,6 +201,7 @@ export const useStudio = create<StudioState>()((set, get) => ({
       ]);
       set({
         hello: hello as ControlSnapshot,
+        aiClients: (hello as ControlSnapshot).aiClients ?? 0,
         devices: (devices as { devices: DeviceInfo[] }).devices,
         approvals: (approvals as { approvals: ApprovalRequest[] }).approvals,
         policy: (policy as { policy: PolicyFile }).policy,
@@ -245,8 +253,6 @@ export const useStudio = create<StudioState>()((set, get) => ({
     await get().setMode(p.mode);           // repair/bootloader ask for the word here
     get().notify(translate("preset.applied", { preset: translate(`preset.${preset}`) }));
   },
-  setModeGuarded(mode) { return get().setMode(mode as never); },
-
   /** Read-only security/hygiene scan of the connected device. */
   async runScan() {
     set({ scan: { loading: true, report: null, error: null } });
@@ -286,14 +292,14 @@ export const useStudio = create<StudioState>()((set, get) => ({
 
   async startSession(name, pkg, goal) {
     await get().runTool("session_start", { name, package: pkg, goal });
-    get().notify(`เริ่ม session: ${name}`);
+    get().notify(translate("toast.session_started", { name }));
   },
   async stopSession(reason) { await get().call("session/stop", { reason: reason ?? "user" }); },
   async createReport(format) {
     const s = get().session;
     if (!s) return get().notify(translate("toast.no_session"), "warn");
-    const r = (await get().runTool("report_create", { session_id: s.id, format })) as unknown as { data: { path: string } };
-    get().notify(`สร้างรายงาน ${format.toUpperCase()} แล้ว: ${r.data.path}`);
+    const r = (await get().runTool("report_create", { session_id: s.id, format, lang: getTranslateLang() })) as unknown as { data: { path: string } };
+    get().notify(translate("toast.report_saved_path", { fmt: format.toUpperCase(), path: r.data.path }));
   },
 
   setTheme(theme: "system" | "light" | "dark") {
@@ -304,11 +310,32 @@ export const useStudio = create<StudioState>()((set, get) => ({
   },
 
   /* ---------- scrcpy / recording ---------- */
+  /** Pull the real mirror/record state (used on page mount and after start/stop). */
+  async refreshMedia() {
+    try {
+      const [sc, rec] = await Promise.all([get().call("scrcpy/status"), get().call("record/status")]) as [
+        MediaState["scrcpy"], MediaState["record"],
+      ];
+      set({ media: { scrcpy: sc, record: rec } });
+    } catch { /* keep the last known state */ }
+  },
   async scrcpyStart(opts: Record<string, unknown> = {}) {
-    try { await get().call("scrcpy/start", { device: get().selected ?? undefined, ...opts }); get().notify(translate("toast.scrcpy_open")); }
+    set({ scrcpyError: null });
+    try {
+      await get().call("scrcpy/start", { device: get().selected ?? undefined, ...opts });
+      await get().refreshMedia();
+      get().notify(translate("toast.scrcpy_open"));
+    } catch (e) {
+      // keep the failure for the Live page (localized hint + retry), not only a toast
+      set({ scrcpyError: { code: (e as { code?: string }).code, message: errText(e) } });
+      get().notify(errText(e), "error");
+      void get().refreshMedia();
+    }
+  },
+  async scrcpyStop() {
+    try { await get().call("scrcpy/stop"); set({ scrcpyError: null }); await get().refreshMedia(); }
     catch (e) { get().notify(errText(e), "error"); }
   },
-  async scrcpyStop() { try { await get().call("scrcpy/stop"); } catch (e) { get().notify(errText(e), "error"); } },
   async recordStart(seconds = 180) {
     try { const r = (await get().call("record/start", { device: get().selected ?? undefined, seconds })) as { remotePath: string; seconds: number };
       get().notify(translate("toast.rec_start", { s: r.seconds })); set({ busy: "record" });
@@ -319,7 +346,7 @@ export const useStudio = create<StudioState>()((set, get) => ({
       get().notify(translate("toast.rec_saved", { mb: (r.size / 1048576).toFixed(1), s: r.seconds }));
       set({ busy: null });
       const err = await window.adbstudio.agent.openPath(r.localPath);
-      if (err) get().notify(`เปิดไฟล์ไม่สำเร็จ: ${r.localPath}`, "warn");
+      if (err) get().notify(translate("toast.open_failed", { path: r.localPath }), "warn");
     } catch (e) { get().notify(errText(e), "error"); set({ busy: null }); }
   },
 
@@ -338,7 +365,7 @@ export const useStudio = create<StudioState>()((set, get) => ({
       get().notify(translate("toast.shot_saved", { kb: (r.bytes / 1024).toFixed(0), folder: r.folder }));
       set({ busy: null, lastShot: r.path });
       const err = await window.adbstudio.agent.openPath(r.path);
-      if (err) get().notify(`เปิดไฟล์ไม่สำเร็จ: ${r.path}`, "warn");
+      if (err) get().notify(translate("toast.open_failed", { path: r.path }), "warn");
     } catch (e) { get().notify(errText(e), "error"); set({ busy: null }); }
   },
 
@@ -346,10 +373,6 @@ export const useStudio = create<StudioState>()((set, get) => ({
     try { const r = (await get().call("audit/tail", { limit: 100 })) as { entries: AuditRow[] }; set({ audit: r.entries }); }
     catch (e) { get().notify(errText(e), "error"); }
   },
-
-  setToast() { /* replaced by notify */ },
 }));
 
 export const errMsg = errText;
-/** modes that carry a typed-confirmation step before entering */
-export const ADVANCED_MODES = new Set<Mode>(["repair", "bootloader"]);

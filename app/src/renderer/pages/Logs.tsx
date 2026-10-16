@@ -93,7 +93,7 @@ export function Logs() {
         </div>
       </Card>
 
-      <Card title={t("set.policy")}>
+      <Card title={t("logs.policy")}>
         <ul className="space-y-2 text-[11px] leading-relaxed text-[var(--color-ink-2)]">
           <li>{t("logs.note_redact")}</li>
           <li>{t("logs.highlight")}{" "}

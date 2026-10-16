@@ -70,30 +70,30 @@ export class SecurityService {
 
     if (deviceAdmins.length) {
       findings.push({
-        id: "device_admins", severity: "high", title: "แอปขอสิทธิ์ Device Admin",
-        detail: `${deviceAdmins.length} รายการ: ${deviceAdmins.join(", ")} — ส่วนใหญ่ของ malware ต้องการสิทธิ์นี้ไว้ล้างข้อมูล/ล็อกหน้าจอ`,
+        id: "device_admins", severity: "high", title: "App holds Device Admin",
+        detail: `${deviceAdmins.length} app(s): ${deviceAdmins.join(", ")} — most malware wants this permission to wipe data or lock the screen`,
         packages: deviceAdmins,
-        fix: { tool: "app_uninstall", hint: "ถอดการติดตั้งแอปที่ไม่รู้จัก (ต้องอนุมัติ)" },
+        fix: { tool: "app_uninstall", hint: "Uninstall unfamiliar apps (needs approval)" },
       });
     }
     if (accessibility.length > 3) {
       findings.push({
-        id: "accessibility_many", severity: "medium", title: "บริการความช่วยเหลือการเข้าถึงจำนวนมาก",
-        detail: `เปิดอยู่ ${accessibility.length} รายการ — malware ใช้บริการนี้อ่านหน้าจอและกดปุ่มแทนคุณ`,
+        id: "accessibility_many", severity: "medium", title: "Many accessibility services enabled",
+        detail: `${accessibility.length} enabled — malware abuses these to read the screen and tap for you`,
         packages: accessibility.map((s) => s.split("/")[0]),
       });
     }
     if (unknownSources.length) {
       findings.push({
-        id: "unknown_sources", severity: "medium", title: "แอปที่ติดตั้งจากนอก Play Store",
-        detail: `${unknownSources.length} รายการ (เช่น ${unknownSources.slice(0, 8).map(([p, i]) => `${p} ← ${i}`).join(", ")}) — ตรวจว่าเป็น APK ที่คุณตั้งใจติดตั้ง`,
+        id: "unknown_sources", severity: "medium", title: "Apps installed outside the Play Store",
+        detail: `${unknownSources.length} app(s) (e.g. ${unknownSources.slice(0, 8).map(([p, i]) => `${p} ← ${i}`).join(", ")}) — check these are APKs you meant to install`,
         packages: unknownSources.map(([p]) => p),
       });
     }
     if (listeners.length) {
       findings.push({
-        id: "notification_listeners", severity: "low", title: "แอปอ่านการแจ้งเตือน",
-        detail: `${listeners.map((s) => s.split("/")[0]).join(", ")} — บริการนี้เห็นข้อความการแจ้งเตือนทั้งหมด`,
+        id: "notification_listeners", severity: "low", title: "Apps reading notifications",
+        detail: `${listeners.map((s) => s.split("/")[0]).join(", ")} — these services see every notification`,
         packages: listeners.map((s) => s.split("/")[0]),
       });
     }
@@ -106,16 +106,16 @@ export class SecurityService {
     });
     if (suspicious.length) {
       findings.push({
-        id: "suspicious_combo", severity: "critical", title: "แพ็กเกจน่าสงสัย (ติดตั้งจากนอก + สิทธิ์อันตราย)",
-        detail: `${suspicious.join(", ")} — ผสมตัวเหล่านี้พบบ่อยใน malware แนะนำให้ถอด/ปิดการใช้งานทันที`,
+        id: "suspicious_combo", severity: "critical", title: "Suspicious packages (sideloaded + dangerous permissions)",
+        detail: `${suspicious.join(", ")} — this combination is common in malware; uninstall or disable right away`,
         packages: suspicious,
-        fix: { tool: "app_disable", hint: "ปิดการใช้งานก่อน (รีสตาร์ตก็คืนได้) หรือถอดถอนเลย" },
+        fix: { tool: "app_disable", hint: "Disable first (reversible after a reboot) or uninstall outright" },
       });
     }
 
     findings.push({
-      id: "hint", severity: "info", title: "ข้อเสนอแนะทั่วไป",
-      detail: "อัปเดต Android/แอปจาก Play Store · ถอดแอปที่ไม่ได้ใช้ · เปิด Play Protect (Play Store → โปรไฟล์ → Play Protect) · หลีกเลี่ยง APK จากเว็บไม่เชื่อถือ",
+      id: "hint", severity: "info", title: "General advice",
+      detail: "Update Android/apps from the Play Store · uninstall apps you don't use · enable Play Protect (Play Store → profile → Play Protect) · avoid APKs from untrusted sites",
       packages: [],
     });
 

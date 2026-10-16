@@ -89,15 +89,15 @@ function registerIpc(): void {
 
   // files are opened by the OS, so the renderer never touches fs
   ipcMain.handle("agent:openPath", (_e, p: string) => shell.openPath(p));
-  ipcMain.handle("agent:chooseApk", async () => {
+  ipcMain.handle("agent:chooseApk", async (_e, title = "Choose an APK file") => {
     const r = await dialog.showOpenDialog(win!, {
-      title: "เลือก APK สำหรับติดตั้ง",
+      title,
       properties: ["openFile"],
       filters: [{ name: "Android Package", extensions: ["apk"] }],
     });
     return r.canceled || !r.filePaths[0] ? { canceled: true } : { canceled: false, path: r.filePaths[0] };
   });
-  ipcMain.handle("agent:chooseLocalFile", async (_e, title = "เลือกไฟล์") => {
+  ipcMain.handle("agent:chooseLocalFile", async (_e, title = "Choose a file") => {
     const r = await dialog.showOpenDialog(win!, { title, properties: ["openFile"] });
     return r.canceled || !r.filePaths[0] ? { canceled: true } : { canceled: false, path: r.filePaths[0] };
   });

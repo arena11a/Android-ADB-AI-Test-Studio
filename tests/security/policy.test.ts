@@ -75,7 +75,7 @@ describe("advanced modes (repair / bootloader)", () => {
   });
 
   it("both modes require the typed confirmation word", () => {
-    expect(enable("repair").confirmWord("repair")).toBe("ซ่อม");
+    expect(enable("repair").confirmWord("repair")).toBe("REPAIR");
     expect(enable("bootloader").confirmWord("bootloader")).toBe("BOOTLOADER");
     expect(enable("develop").confirmWord("develop")).toBeNull();
   });

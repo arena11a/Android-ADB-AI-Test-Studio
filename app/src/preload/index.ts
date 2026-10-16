@@ -35,7 +35,7 @@ const api = {
     status: () => ipcRenderer.invoke("agent:status"),
     restart: () => ipcRenderer.invoke("agent:restart"),
     openPath: (p: string) => ipcRenderer.invoke("agent:openPath", p) as Promise<string>,
-    chooseApk: () => ipcRenderer.invoke("agent:chooseApk") as Promise<DialogResult>,
+    chooseApk: (title?: string) => ipcRenderer.invoke("agent:chooseApk", title) as Promise<DialogResult>,
     chooseLocalFile: (title?: string) => ipcRenderer.invoke("agent:chooseLocalFile", title) as Promise<DialogResult>,
   },
 };

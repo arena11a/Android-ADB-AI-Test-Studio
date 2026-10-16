@@ -62,7 +62,7 @@ export class ToolRouter {
         {
           requestedBy: req.actor, client: req.client, tool: req.tool, params: parsed, reason: req.reason,
           risk: decision.risk, impact: def!.description, device, package: parsed.package as string | undefined,
-          typedConfirm: decision.risk === "critical" ? "ยืนยัน" : undefined,
+          typedConfirm: decision.risk === "critical" ? "CONFIRM" : undefined,
         },
         this.policy.policy.approval.ttlSeconds,
       );

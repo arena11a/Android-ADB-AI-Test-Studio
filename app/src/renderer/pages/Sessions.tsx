@@ -5,7 +5,8 @@ import { useI18n } from "../i18n";
 import type { Session } from "@shared/types";
 
 export function Sessions() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const locale = lang === "th" ? "th-TH" : "en-US";
   const policy = useStudio((s) => s.policy);
   const session = useStudio((s) => s.session);
   const history = useStudio((s) => s.history);
@@ -16,7 +17,7 @@ export function Sessions() {
   const call = useStudio((s) => s.call);
   const notify = useStudio((s) => s.notify);
 
-  const [name, setName] = useState(`Session ${new Date().toLocaleString("th-TH")}`);
+  const [name, setName] = useState(`Session ${new Date().toLocaleString(locale)}`);
   const [goal, setGoal] = useState("");
   const pkg = policy?.targetPackages[0] ?? "";
 
@@ -70,7 +71,7 @@ export function Sessions() {
                       <td className="mono">{s.tool}</td>
                       <td className={s.result === "success" ? "text-emerald-600 dark:text-emerald-400" : s.result === "blocked" || s.result === "denied" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}>{s.result}</td>
                       <td>{s.risk}</td>
-                      <td className="text-[var(--color-ink-3)]">{new Date(s.ts).toLocaleTimeString()}</td>
+                      <td className="text-[var(--color-ink-3)]">{new Date(s.ts).toLocaleTimeString(locale)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -92,8 +93,8 @@ export function Sessions() {
                   <tr key={h.id} className="border-t border-[var(--color-edge)]">
                     <td className="py-1.5">{h.name}</td>
                     <td className="mono text-[11px]">{h.package}</td>
-                    <td className="text-[var(--color-ink-3)]">{new Date(h.startedAt).toLocaleString("th-TH")}</td>
-                    <td className="text-[var(--color-ink-3)]">{h.endedAt ? new Date(h.endedAt).toLocaleString("th-TH") : "-"}</td>
+                    <td className="text-[var(--color-ink-3)]">{new Date(h.startedAt).toLocaleString(locale)}</td>
+                    <td className="text-[var(--color-ink-3)]">{h.endedAt ? new Date(h.endedAt).toLocaleString(locale) : "-"}</td>
                     <td>{h.stopReason ?? "-"}</td>
                     <td className="tabular-nums">{h.steps.length}</td>
                     <td className="tabular-nums">{h.crashes.length}</td>

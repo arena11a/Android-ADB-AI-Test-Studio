@@ -185,7 +185,7 @@ export class PolicyEngine {
   /** `bootloader`/`repair` modes are dangerous: entering them needs a typed word from the human. */
   confirmWord(mode: Mode): string | null {
     if (mode === "bootloader") return "BOOTLOADER";
-    if (mode === "repair") return "ซ่อม";
+    if (mode === "repair") return "REPAIR";
     return null;
   }
 

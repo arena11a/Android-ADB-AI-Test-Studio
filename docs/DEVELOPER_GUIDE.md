@@ -48,7 +48,7 @@ and every new capability defaults to **off** (`features.*`) unless it is read-on
 | `repair` | `features.repair` | read diagnostics (`security_scan`, `device_admins`, `app_permissions`, logs, metrics…) **or request** a fix — every action becomes an approval |
 | `bootloader` | `features.bootloader` | nothing. Bootloader tools are denied for `actor: "ai"` in **every** mode, in `evaluate()` |
 
-Entering either mode requires the typed word (`ซ่อม` / `BOOTLOADER`) via `control.ts`, which also arms the feature. There is **no tool** that changes the mode, so an AI cannot escalate itself.
+Entering either mode requires the typed word (`REPAIR` / `BOOTLOADER`) via `control.ts`, which also arms the feature. There is **no tool** that changes the mode, so an AI cannot escalate itself.
 
 ## Sockets & security
 

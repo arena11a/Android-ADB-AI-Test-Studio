@@ -233,9 +233,9 @@ describe("control server — approvals", () => {
     const running = ctl.call("tool/call", { tool: "power_request_reboot", params: { reason: "ui reboot" } });
     const added = await ctl.waitFor((e) => e.event === "approval:added");
     const id = (added.data as { id: string; typedConfirm?: string }).id;
-    expect((added.data as { typedConfirm?: string }).typedConfirm).toBe("ยืนยัน");
+    expect((added.data as { typedConfirm?: string }).typedConfirm).toBe("CONFIRM");
     await expect(ctl.call("approval/decide", { id, action: "approve", typed: "yes" })).rejects.toThrow(/INVALID_PARAMS/);
-    expect((await ctl.call("approval/decide", { id, action: "approve", typed: "ยืนยัน" })).decided).toBe("approve");
+    expect((await ctl.call("approval/decide", { id, action: "approve", typed: "CONFIRM" })).decided).toBe("approve");
     expect((await running).ok).toBe(true);
     expect(calls().some((c) => c[0] === "reboot")).toBe(true);
     ctl.close();

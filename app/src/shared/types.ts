@@ -45,7 +45,7 @@ export interface StudioApi {
     status: () => Promise<AgentStatus>;
     restart: () => Promise<AgentStatus>;
     openPath: (p: string) => Promise<string>;
-    chooseApk: () => Promise<DialogResult>;
+    chooseApk: (title?: string) => Promise<DialogResult>;
     chooseLocalFile: (title?: string) => Promise<DialogResult>;
   };
 }

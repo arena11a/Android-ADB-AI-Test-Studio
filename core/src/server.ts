@@ -21,8 +21,14 @@ export interface AgentServerHandle {
  *  - Origin header must be absent (blocks browser pages from connecting)
  *  - clients may only call the tool registry; actor is forced to "ai"
  */
-export function startAgentServer(router: ToolRouter, endpointFile: string, port = 0): AgentServerHandle {
+export function startAgentServer(
+  router: ToolRouter,
+  endpointFile: string,
+  port = 0,
+  onClients?: (count: number) => void,
+): AgentServerHandle {
   const token = randomBytes(32).toString("hex");
+  let clients = 0;
   let listeningResolve!: () => void;
   const listening = new Promise<void>((res) => { listeningResolve = res; });
   const wss = new WebSocketServer({
@@ -37,6 +43,17 @@ export function startAgentServer(router: ToolRouter, endpointFile: string, port 
   });
 
   wss.on("connection", (ws: WebSocket) => {
+    // connection accounting → the UI can show "AI (MCP) connected" for real
+    let counted = true;
+    const drop = () => {
+      if (!counted) return;
+      counted = false;
+      if (clients > 0) clients--;
+      onClients?.(clients);
+    };
+    clients++; onClients?.(clients);
+    ws.on("close", drop);
+    ws.on("error", drop);
     ws.on("message", async (raw) => {
       let msg: { id?: string; method?: string; params?: Record<string, unknown> };
       try { msg = JSON.parse(String(raw)); } catch { return ws.close(1003); }
@@ -64,7 +81,11 @@ export function startAgentServer(router: ToolRouter, endpointFile: string, port 
     listeningResolve();
   });
 
-  const close = () => { for (const c of wss.clients) c.terminate(); wss.close(); };
+  const close = () => {
+    for (const c of wss.clients) c.terminate();
+    wss.close();
+    if (clients) { clients = 0; onClients?.(0); }
+  };
   const portNow = () => { const a = wss.address(); return typeof a === "object" && a ? a.port : 0; };
   return {
     get url() { return `ws://127.0.0.1:${portNow()}`; },

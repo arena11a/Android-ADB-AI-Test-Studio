@@ -77,7 +77,7 @@ Everything else (targets, feature switches, folders, audit) is in **Settings**.
 | `automation` | AI limited to low/medium risk inside scope |
 | `approve_all` | every state change needs approval |
 | `plan_only` | AI may only dry-run |
-| `repair` ⚠ | **AI may read diagnostics or request a fix** (→ approval). Type `ซ่อม` to enter |
+| `repair` ⚠ | **AI may read diagnostics or request a fix** (→ approval). Type `REPAIR` to enter |
 | `bootloader` ⚠ | **human-only** fastboot/unlock/sideload. Type `BOOTLOADER` to enter |
 
 The mode selector lives in the app header — **there is no tool that changes the mode**, so an AI cannot escalate itself.

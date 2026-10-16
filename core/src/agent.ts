@@ -63,7 +63,12 @@ export function createAgent(opts: AgentOptions) {
     starting ??= (async () => {
       const controlEp = await control.start();
       try {
-        agentHandle = startAgentServer(studio.router, opts.endpointFile ?? path.join(dataDir, "endpoint.json"), opts.agentPort ?? 0);
+        agentHandle = startAgentServer(
+          studio.router,
+          opts.endpointFile ?? path.join(dataDir, "endpoint.json"),
+          opts.agentPort ?? 0,
+          (count) => control.setAiClients(count),
+        );
         await agentHandle.listening;
       } catch (e) {
         control.close();

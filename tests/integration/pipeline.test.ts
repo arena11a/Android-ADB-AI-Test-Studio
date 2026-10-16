@@ -105,9 +105,9 @@ describe("end-to-end through fake adb", () => {
     const pending = ai("power_request_reboot");
     await new Promise((r) => setTimeout(r, 20));
     const [req] = studio.approvals.list();
-    expect(req.typedConfirm).toBe("ยืนยัน");
+    expect(req.typedConfirm).toBe("CONFIRM");
     expect(studio.approvals.approve(req.id, "yes")).toBe(false);
-    expect(studio.approvals.approve(req.id, "ยืนยัน")).toBe(true);
+    expect(studio.approvals.approve(req.id, "CONFIRM")).toBe(true);
     expect((await pending).ok).toBe(true);
     expect(calls().some((c) => c[0] === "shell" ? false : c[0] === "reboot")).toBe(true);
   });

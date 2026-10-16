@@ -156,7 +156,7 @@ export function createStudio(opts: StudioOptions) {
   router.register("report_create", async (p) => {
     const s = sessions.active;
     if (!s || s.id !== p.session_id) throw new StudioError("INVALID_PARAMS", "Unknown or non-current session id");
-    return { path: writeReport({ session: s, metrics: metrics.data() }, p.format as "html" | "md" | "json") };
+    return { path: writeReport({ session: s, metrics: metrics.data(), lang: (p.lang as "th" | "en" | undefined) ?? "th" }, p.format as "html" | "md" | "json") };
   });
 
   // --- security / repair -------------------------------------------------

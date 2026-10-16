@@ -35,6 +35,7 @@ export type ControlEvent =
   | { event: "devices"; data: DeviceInfo[] }
   | { event: "anomaly"; data: { message: string } }
   | { event: "media:update"; data: { scrcpy: ReturnType<ControlServer["studio"] extends never ? never : Studio["scrcpy"]["status"]>; record: { running: boolean; seconds?: number } } }
+  | { event: "mcp:clients"; data: { count: number } }
   | { event: "bye"; data: { reason: string } };
 
 export interface ControlSnapshot {
@@ -46,6 +47,8 @@ export interface ControlSnapshot {
   features: PolicyFile["features"];
   killSwitch: boolean;
   pendingApprovals: number;
+  /** how many AI clients (MCP bridges) are connected right now */
+  aiClients: number;
   session: Session | null;
 }
 
@@ -72,6 +75,7 @@ export class ControlServer extends EventEmitter {
   private lastDevices = "";
   private logSerial?: string;
   private metricsSerial?: string;
+  private aiClients = 0;
 
   constructor(private studio: Studio, private opts: { port?: number; endpointFile?: string; pollDevicesMs?: number; adbPath?: string } = {}) {
     super();
@@ -166,6 +170,7 @@ export class ControlServer extends EventEmitter {
       mode: p.mode, role: p.role, targets: p.targetPackages, features: p.features,
       killSwitch: this.studio.kill.active,
       pendingApprovals: this.studio.approvals.list().length,
+      aiClients: this.aiClients,
       session: this.studio.sessions.active ?? null,
     };
   }
@@ -336,6 +341,9 @@ export class ControlServer extends EventEmitter {
           showTouches: p.showTouches === true,
           windowTitle: typeof p.windowTitle === "string" ? p.windowTitle : `ADB Studio — ${serial}`,
         });
+        // the mirror is up → push the state so the UI flips to "running" without polling
+        this.mediaChanged();
+        return s.scrcpy.status();
       }
       case "scrcpy/stop": s.scrcpy.stop(); this.mediaChanged(); return s.scrcpy.status();
 
@@ -409,6 +417,13 @@ export class ControlServer extends EventEmitter {
 
   /** scrcpy/recording state after a start/stop, so the UI does not have to poll. */
   broadcastMedia(): void { this.mediaChanged(); }
+
+  /** How many AI clients are attached to the MCP socket (Settings/header show this). */
+  setAiClients(count: number): void {
+    if (this.aiClients === count) return;
+    this.aiClients = count;
+    this.broadcast({ event: "mcp:clients", data: { count } });
+  }
   private mediaChanged(): void {
     this.broadcast({
       event: "media:update",

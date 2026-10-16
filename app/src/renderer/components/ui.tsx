@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useI18n } from "../i18n";
 
 /* ---------- card ------------------------------------------------------- */
@@ -55,7 +55,8 @@ export function Toggle({ checked, onChange, label, hint }:
 }
 
 /* ---------- feedback --------------------------------------------------- */
-export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "ok" | "warn" | "bad" | "info" }) {
+export function Pill({ children, tone = "neutral", className = "", ...rest }:
+  { children: ReactNode; tone?: "neutral" | "ok" | "warn" | "bad" | "info"; className?: string } & Omit<ComponentProps<"span">, "children" | "className" | "tone">) {
   const tones = {
     neutral: "bg-[var(--color-surface-3)] text-[var(--color-ink-2)]",
     ok: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
@@ -63,7 +64,7 @@ export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone
     bad: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-100",
     info: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-100",
   };
-  return <span className={`pill ${tones[tone]}`}>{children}</span>;
+  return <span className={`pill ${tones[tone]} ${className}`.trim()} {...rest}>{children}</span>;
 }
 
 export function Empty({ icon, children, className = "" }: { icon?: ReactNode; children: ReactNode; className?: string }) {

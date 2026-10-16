@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Empty, Icon, KeyVal, Pill, Row, Select, TextInput } from "../components/ui";
 import { errMsg, useStudio } from "../store";
-import { useI18n } from "../i18n";
+import { translate, useI18n, localeOf } from "../i18n";
 import type { StudioApi } from "@shared/types";
 
 /** typed-confirmation steps, matching the schemas of the tools they guard */
@@ -44,7 +44,8 @@ const CONFIRM_WORD: Record<string, string> = {
 const NEEDS_IMAGE = new Set(["flash_boot", "flash_init_boot", "flash_recovery", "flash_vendor_boot", "flash_dtbo", "flash_vbmeta", "flash_modem"]);
 
 export function Bootloader() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const locale = localeOf(lang);
   const policy = useStudio((s) => s.policy);
   const hello = useStudio((s) => s.hello);
   const call = useStudio((s) => s.call);
@@ -68,12 +69,12 @@ export function Bootloader() {
   const run = async () => {
     if (!canRun) return;
     setBusy(true);
-    const push = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${line}`, ...l].slice(0, 60));
+    const push = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString(locale)} ${line}`, ...l].slice(0, 60));
     try {
       const r = (await call("tool/call", {
         tool: toolFor(action),
         params: {
-          reason: "bootloader page",
+          reason: translate("reason.bootloader"),
           ...(action === "reboot_bootloader" ? { target: "bootloader" } : {}),
           ...(action === "reboot_recovery" ? { target: "recovery" } : {}),
           ...(action === "set_active_a" ? { slot: "a" } : {}),
@@ -104,12 +105,12 @@ export function Bootloader() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title={t("boot.warn_title")} icon={<Icon name="shield" className="h-4 w-4" />}
-            right={<Pill tone={inMode ? "bad" : "neutral"}>{inMode ? t("mode.bootloader") : t("live.not_running")}</Pill>}>
+             right={<Pill tone={inMode ? "bad" : "neutral"}>{inMode ? t("mode.short.bootloader") : t("live.not_running")}</Pill>}>
         <div className="flex gap-3 rounded-xl border border-red-300 bg-red-50 p-3 text-[12px] leading-relaxed text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-100">
           <Icon name="shield" className="mt-0.5 h-5 w-5 shrink-0" />
           <p>{t("boot.warn_body")}</p>
         </div>
-        {!feature && <p className="mt-3 text-[12px] text-amber-600 dark:text-amber-400">⚠ {t("sec.warn_off", { feat: t("set.bootloader") })} → {t("nav.settings")}</p>}
+        {!feature && <p className="mt-3 text-[12px] text-amber-600 dark:text-amber-400">⚠ {t("sec.warn_off", { feat: t("set.bootloader") })}</p>}
         <Row className="mt-4">
           {inMode
             ? <Button kind="ghost" onClick={() => void setMode("safe" as never)}>{t("set.safe_mode")}</Button>
@@ -156,16 +157,16 @@ export function Bootloader() {
 
       <Card title={t("boot.status")} className="lg:col-span-2">
         <KeyVal rows={[
-          [t("app.mode"), <b>{policy?.mode ?? "-"}</b>],
+          [t("app.mode"), <b>{policy ? t(`mode.short.${policy.mode}`) : "-"}</b>],
           [t("set.bootloader"), <Pill tone={feature ? "ok" : "neutral"}>{feature ? t("common.yes") : t("common.no")}</Pill>],
-          [t("dash.kill_switch"), hello?.killSwitch ? t("dash.kill_switch_active") : t("dash.kill_switch_off")],
+          [t("app.kill_switch"), hello?.killSwitch ? t("dash.kill_switch_active") : t("dash.kill_switch_off")],
         ]} />
         <div className="mt-3 flex gap-2">
-          <Button kind="ghost" size="sm" disabled={locked} onClick={() => void call("tool/call", { tool: "fastboot_info", params: { reason: "bootloader page", sub: "devices" } })
+          <Button kind="ghost" size="sm" disabled={locked} onClick={() => void call("tool/call", { tool: "fastboot_info", params: { reason: translate("reason.bootloader"), sub: "devices" } })
             .then((r: { ok: boolean; data?: { devices: string }; error?: { message: string } }) => setLog((l) => [`${t("boot.devices")}: ${r.ok ? r.data?.devices || "—" : r.error?.message}`, ...l].slice(0, 60)))}>
             {t("boot.devices")}
           </Button>
-          <Button kind="ghost" size="sm" disabled={locked} onClick={() => void call("tool/call", { tool: "fastboot_info", params: { reason: "bootloader page", sub: "getvar_current_slot" } })
+          <Button kind="ghost" size="sm" disabled={locked} onClick={() => void call("tool/call", { tool: "fastboot_info", params: { reason: translate("reason.bootloader"), sub: "getvar_current_slot" } })
             .then((r: { ok: boolean; data?: { current_slot: string }; error?: { message: string } }) => setLog((l) => [`${t("boot.slot")}: ${r.ok ? r.data?.current_slot : r.error?.message}`, ...l].slice(0, 60)))}>
             {t("boot.slot")}
           </Button>

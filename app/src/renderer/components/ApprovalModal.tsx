@@ -1,15 +1,9 @@
-import { RISK_CLASS, RISK_LABEL, translate, useI18n } from "../i18n";
+import { RISK_CLASS, translate, useI18n } from "../i18n";
 import { useEffect, useState } from "react";
 import { Button, Card } from "./ui";
 import type { ApprovalRequest } from "@shared/types";
 
 const RISK_STYLE = RISK_CLASS;
-const _unused: Record<string, string> = {
-  low: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200",
-  medium: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
-  high: "bg-orange-200 text-orange-950 dark:bg-orange-900/50 dark:text-orange-100",
-  critical: "bg-red-200 text-red-950 dark:bg-red-900/60 dark:text-red-100",
-};
 
 /**
  * Approval dialog. Approve is single-use: there is deliberately no
@@ -44,8 +38,8 @@ export function ApprovalModal({ req, onApprove, onDeny }: {
          className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
       <div className="w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl dark:bg-zinc-900 dark:text-zinc-100">
         <div className="flex items-center justify-between">
-          <h2 id="ap-title" className="text-lg font-semibold">คำขออนุมัติ</h2>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${RISK_STYLE[req.risk]}`}>{RISK_LABEL[req.risk]}</span>
+          <h2 id="ap-title" className="text-lg font-semibold">{t("approval.title")}</h2>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${RISK_STYLE[req.risk]}`}>{t(`risk.${req.risk}`)}</span>
         </div>
 
         <dl className="mt-4 grid grid-cols-[8rem_1fr] gap-x-3 gap-y-2 text-sm">
@@ -92,6 +86,7 @@ export function ApprovalModal({ req, onApprove, onDeny }: {
 export function ApprovalStack({ requests, onApprove, onDeny }: {
   requests: ApprovalRequest[]; onApprove: (id: string, typed?: string) => void; onDeny: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState<string | null>(null);
   const first = requests[0];
   useEffect(() => { if (first && !requests.some((r) => r.id === open)) setOpen(first.id); }, [first, open, requests]);
@@ -102,7 +97,7 @@ export function ApprovalStack({ requests, onApprove, onDeny }: {
       {requests.length > 1 && (
         <div className="fixed bottom-4 right-4 z-40">
           <Card className="!bg-amber-100 !text-amber-950 dark:!bg-amber-900/60 dark:!text-amber-100">
-            มีอีก {requests.length - 1} คำขอที่รออนุมัติ
+            {t("approval.pending_more", { n: requests.length - 1 })}
           </Card>
         </div>
       )}
@@ -110,5 +105,3 @@ export function ApprovalStack({ requests, onApprove, onDeny }: {
     </>
   );
 }
-
-export const riskClass = RISK_CLASS;

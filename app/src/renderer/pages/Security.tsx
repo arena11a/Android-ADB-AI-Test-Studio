@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Empty, Icon, KeyVal, Pill, Row, Skeleton } from "../components/ui";
 import { errMsg, useStudio } from "../store";
-import { translate, useI18n } from "../i18n";
+import { hasTranslation, translate, useI18n } from "../i18n";
 
 interface Finding {
   id: string; severity: "critical" | "high" | "medium" | "low" | "info";
@@ -34,10 +34,18 @@ export function Security() {
 
   useEffect(() => { if (repairOn && !scan.report && !scan.loading) void runScan(); }, [repairOn, scan.report, scan.loading, runScan]);
 
+  // Findings arrive as data from core; render their text in the active language,
+  // falling back to whatever the agent provided for unknown finding ids.
+  const findingText = (f: Finding, part: "title" | "detail" | "fix", fallback: string) => {
+    const key = part === "title" ? `sec.f.${f.id}.title` : part === "detail" ? `sec.f.${f.id}.detail` : `sec.f.${f.id}.fix`;
+    if (!hasTranslation(key)) return fallback;
+    return t(key, { n: f.packages.length, list: f.packages.slice(0, 8).join(", ") || "—" });
+  };
+
   const fix = async (f: Finding) => {
     const pkg = f.packages[0];
     if (!pkg) return;
-    if (!confirm(`${f.fix?.hint ?? translate("seqperation.proceed")} → ${pkg}\n${translate("seqperation.needs_approval")}`)) return;
+    if (!confirm(`${f.fix ? findingText(f, "fix", f.fix.hint) : translate("seqperation.proceed")} → ${pkg}\n${translate("seqperation.needs_approval")}`)) return;
     try {
       if (f.fix?.tool === "app_uninstall") await runTool("app_uninstall", { package: pkg, reason: translate("reason.security_from") });
       else if (f.fix?.tool === "app_revoke") await runTool("app_revoke", { package: pkg, permission: "android.permission.READ_SMS", reason: translate("reason.security_from") });
@@ -64,7 +72,7 @@ export function Security() {
         <p className="text-[13px] leading-relaxed text-[var(--color-ink-2)]">{t("sec.hint")}</p>
         {!repairFeature && (
           <p className="mt-2 text-[12px] text-amber-600 dark:text-amber-400">
-            ⚠ {t("sec.warn_off", { feat: t("set.repair") })} → {t("nav.settings")} → {t("set.advanced_features")}
+            ⚠ {t("sec.warn_off", { feat: t("set.repair") })}
           </p>
         )}
 
@@ -95,10 +103,10 @@ export function Security() {
           {report?.findings.map((f) => (
             <div key={f.id} className={`rounded-xl border p-3 ${SEV[f.severity].cls}`}>
               <Row className="justify-between">
-                <b className="text-[13px]">{f.title}</b>
+                <b className="text-[13px]">{findingText(f, "title", f.title)}</b>
                 <Pill>{t(`sev.${f.severity}`)}</Pill>
               </Row>
-              <p className="mt-1 text-[12px] leading-relaxed opacity-90">{f.detail}</p>
+              <p className="mt-1 text-[12px] leading-relaxed opacity-90">{findingText(f, "detail", f.detail)}</p>
               {!!f.packages.length && (
                 <ul className="mt-1.5 mono space-y-0.5 text-[11px] opacity-80">
                   {f.packages.slice(0, 8).map((p) => <li key={p}>{p}</li>)}
@@ -109,15 +117,15 @@ export function Security() {
                   <Button kind="danger" size="sm" disabled={!repairOn || hello?.killSwitch} onClick={() => void fix(f)}>
                     {f.fix.tool === "app_uninstall" ? t("sec.fix_uninstall") : f.fix.tool === "app_revoke" ? t("sec.fix_revoke") : t("sec.fix_disable")}
                   </Button>
-                  <span className="text-[11px] opacity-70">{f.fix.hint}</span>
+                  <span className="text-[11px] opacity-70">{findingText(f, "fix", f.fix.hint)}</span>
                 </Row>
               )}
             </div>
           ))}
           {report?.findings.filter((f) => f.severity === "info").map((f) => (
             <div key={f.id} className="rounded-xl border border-dashed border-[var(--color-edge)] p-3 text-[12px] text-[var(--color-ink-2)]">
-              <b className="text-[13px]">{f.title}</b>
-              <p className="mt-1 leading-relaxed">{f.detail}</p>
+              <b className="text-[13px]">{findingText(f, "title", f.title)}</b>
+              <p className="mt-1 leading-relaxed">{findingText(f, "detail", f.detail)}</p>
             </div>
           ))}
         </div>
@@ -129,9 +137,9 @@ export function Security() {
             [t("dev.serial"), <span className="mono">{report.serial}</span>],
             ["ms", `${report.tookMs}`],
             [t("sec.findings"), `${report.findings.length}`],
-            [t("dash.status"), repairOn ? `repair` : (policy?.mode ?? "-")],
+            [t("dash.status"), repairOn ? t("mode.short.repair") : policy ? t(`mode.short.${policy.mode}`) : "-"],
           ]} />
-        ) : <Empty icon={<Icon name="shield" className="h-8 w-8" />}>{t("dash.audit_empty")}</Empty>}
+        ) : <Empty icon={<Icon name="shield" className="h-8 w-8" />}>{t("sec.no_report")}</Empty>}
         <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-ink-3)]">{t("boot.human_only")}</p>
       </Card>
     </div>

@@ -26,7 +26,7 @@ plug in phone → add target app → mode = observe → screenshot / logs / metr
 
 ## Security check & repair
 
-1. Open **Security** → press **Enable repair mode** and type `ซ่อม`.
+1. Open **Security** → press **Enable repair mode** and type `REPAIR`.
 2. Press **Scan device** (read-only): device admins, accessibility/notification listeners, non-Play installs, suspicious combinations.
 3. Any finding with a suggested fix only runs after you approve it in the approval dialog. The AI can request the same fixes, but they never run without your approval.
 

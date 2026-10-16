@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Empty, Icon, KeyVal, Pill, Row, Select, TextInput, Toggle } from "../components/ui";
 import { errMsg, useStudio } from "../store";
-import { ADVANCED_MODES, MODES, ROLES, translate } from "../i18n";
+import { MODES, ROLES, translate } from "../i18n";
 import { useI18n } from "../i18n";
+import { localeOf } from "../i18n";
 
 /** feature flag labels come from the dictionaries (no hardcoded strings) */
 const FEATURE_LABELS: Record<string, [string, string]> = {
@@ -13,10 +14,16 @@ const FEATURE_LABELS: Record<string, [string, string]> = {
   power: ["feat.power", "feat.power.hint"],
   advancedMode: ["feat.advanced", "feat.advanced.hint"],
   liveView: ["feat.live", "feat.live.hint"],
+  repair: ["set.repair", "set.repair.hint"],
+  bootloader: ["set.bootloader", "set.bootloader.hint"],
 };
 
+/** features that live in the "advanced" section above — never repeated in the risky grid */
+const ADVANCED_FEATURES = new Set(["liveView", "repair", "bootloader"]);
+
 export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const locale = localeOf(lang);
   const policy = useStudio((s) => s.policy);
   const audit = useStudio((s) => s.audit);
   const db = useStudio((s) => s.db);
@@ -33,6 +40,7 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const folders = useStudio((s) => s.folders);
   const refreshFolders = useStudio((s) => s.refreshFolders);
+  const aiClients = useStudio((s) => s.aiClients);
   const [verify, setVerify] = useState<{ ok: boolean; brokenAtSeq?: number } | null>(null);
   const [apkDir, setApkDir] = useState("");
   const refreshDb = useStudio((s) => s.refreshDb);
@@ -54,7 +62,7 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <span className="label">{t("set.mode")}</span>
-            <Select value={policy.mode} onChange={(v) => void act(() => setMode(v), "✓")} options={MODES.map((m) => ({ value: m, label: `${m}${ADVANCED_MODES.has(m as never) ? " ⚠" : ""}` }))} />
+            <Select value={policy.mode} onChange={(v) => void act(() => setMode(v), "✓")} options={MODES.map((m) => ({ value: m, label: translate(`mode.short.${m}`) }))} />
             <p className="mt-1 text-[11px] leading-snug text-[var(--color-ink-3)]">{t(`mode.${policy.mode}`)}</p>
           </div>
           <div>
@@ -67,25 +75,23 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <h3 className="mt-4 text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-3)]">{t("set.advanced_features")}</h3>
         <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
           {(["liveView", "repair", "bootloader"] as const).map((k) => (
-            <Toggle key={k} checked={policy.features[k]}
-                    label={k === "liveView" ? t(FEATURE_LABELS.liveView[0]) : k === "repair" ? t("set.repair") : t("set.bootloader")}
-                    hint={k === "liveView" ? t(FEATURE_LABELS.liveView[1]) : k === "repair"
-                      ? t("set.repair.hint")
-                      : t("set.bootloader.hint")}
-                    onChange={(v) => void act(() => setFeatures({ [k]: v }), `${k} = ${v}`)} />
+            <Toggle key={k} checked={policy.features[k]} label={t(FEATURE_LABELS[k][0])} hint={t(FEATURE_LABELS[k][1])}
+                    onChange={(v) => void act(() => setFeatures({ [k]: v }), t(FEATURE_LABELS[k][0]))} />
           ))}
         </div>
 
         <h3 className="mt-4 text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-3)]">{t("set.features")}</h3>
         <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-          {Object.entries(policy.features).map(([k, v]) => (
-            <Toggle key={k} checked={v} label={t(FEATURE_LABELS[k]?.[0] ?? k)} hint={FEATURE_LABELS[k]?.[1] ? t(FEATURE_LABELS[k][1]) : undefined}
-                    onChange={(nv) => void act(() => setFeatures({ [k]: nv }), `${k} = ${nv}`)} />
-          ))}
+          {Object.entries(policy.features)
+            .filter(([k]) => !ADVANCED_FEATURES.has(k))
+            .map(([k, v]) => (
+              <Toggle key={k} checked={v} label={t(FEATURE_LABELS[k][0])} hint={t(FEATURE_LABELS[k][1])}
+                      onChange={(nv) => void act(() => setFeatures({ [k]: nv }), t(FEATURE_LABELS[k][0]))} />
+            ))}
         </div>
 
         <Row className="mt-4">
-          <Button kind="warn" onClick={() => void act(safeMode, "Safe Mode ✓")}>🛡 {t("set.safe_mode")}</Button>
+          <Button kind="warn" onClick={() => void safeMode().catch((e) => notify(errMsg(e), "error"))}>🛡 {t("set.safe_mode")}</Button>
           <span className="self-center text-[11px] text-[var(--color-ink-3)]">{t("set.safe_mode_hint")}</span>
         </Row>
 
@@ -109,11 +115,11 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <Card title={t("set.ai")} icon={<Icon name="shield" className="h-4 w-4" />}>
         <KeyVal rows={[
-          ["logs target-only", policy.ai.logsTargetOnly ? t("common.yes") : t("common.no")],
-          ["raw coordinates for AI", policy.ai.allowRawCoordinates ? t("common.yes") : t("common.no")],
-          ["reason required", policy.ai.requireReason ? t("common.yes") : t("common.no")],
-          ["rate limits", <span className="mono">{Object.entries(policy.rateLimits).map(([k, v]) => `${k}=${v}`).join(" · ")}</span>],
-          ["privacy.recordVideo", <Pill tone={policy.privacy.recordVideo ? "ok" : "neutral"}>{policy.privacy.recordVideo ? "on" : "off"}</Pill>],
+          [t("set.ai_logs_target"), policy.ai.logsTargetOnly ? t("common.yes") : t("common.no")],
+          [t("set.ai_raw_coords"), policy.ai.allowRawCoordinates ? t("common.yes") : t("common.no")],
+          [t("set.ai_reason"), policy.ai.requireReason ? t("common.yes") : t("common.no")],
+          [t("set.rate_limits"), <span className="mono">{Object.entries(policy.rateLimits).map(([k, v]) => `${k}=${v}`).join(" · ")}</span>],
+          [t("set.privacy_record"), <Pill tone={policy.privacy.recordVideo ? "ok" : "neutral"}>{policy.privacy.recordVideo ? t("common.on") : t("common.off")}</Pill>],
         ]} />
         <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-ink-3)]">{t("set.ai_hint")}</p>
       </Card>
@@ -137,25 +143,29 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-ink-3)]">{t("files.save_hint")}</p>
       </Card>
 
-      <Card title={t("set.ai_connect")} icon={<Icon name="shield" className="h-4 w-4" />}>
+      <Card title={t("set.ai_connect")} icon={<Icon name="shield" className="h-4 w-4" />}
+            right={<Pill tone={aiClients > 0 ? "ok" : "neutral"}>
+              <span className={`h-1.5 w-1.5 rounded-full ${aiClients > 0 ? "bg-emerald-500" : "bg-zinc-400"}`} />
+              {aiClients > 0 ? t("app.ai_connected", { n: aiClients }) : t("app.ai_disconnected")}
+            </Pill>}>
         <p className="text-[12px] leading-relaxed text-[var(--color-ink-2)]">{t("set.ai_connect_hint")}</p>
         <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-[12px] text-[var(--color-ink-2)]">
           <li>{t("set.ai_step1")}</li>
           <li>{t("set.ai_step2")}</li>
           <li>{t("set.ai_step3")}</li>
         </ol>
-        <pre className="mono mt-3 overflow-x-auto rounded-xl bg-[var(--color-surface-2)] p-3 text-[11px] dark:bg-[#060b16]">{"cd " + (status.adbPath ? "~/adb-ai-test-studio" : ".") + "\nnpm run bridge        # MCP stdio server → agent\n# แล้วชี้ AI client มาที่ endpoint.json:\n" + "~/.adbstudio/endpoint.json"}</pre>
+        <pre className="mono mt-3 overflow-x-auto rounded-xl bg-[var(--color-surface-2)] p-3 text-[11px] dark:bg-[#060b16]">{"cd " + (status.adbPath ? "~/adb-ai-test-studio" : ".") + "\nnpm run bridge        # MCP stdio server -> agent\n# endpoint file (read by the bridge):\n" + "~/.adbstudio/endpoint.json"}</pre>
         <Row className="mt-3">
-          <Button kind="ghost" size="sm" onClick={() => void window.adbstudio.agent.openPath(`${process.cwd?.() ?? ""}`.startsWith("/") ? "/" : "/")}>/</Button>
           <span className="mono text-[11px] text-[var(--color-ink-3)]">ADBSTUDIO_CLIENT=opencode|claude-code</span>
         </Row>
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--color-ink-3)]">{t("set.ai_verify")}</p>
       </Card>
 
       <Card title={t("set.audit")} icon={<Icon name="lines" className="h-4 w-4" />} className="xl:col-span-2"
             right={<Row>
               <Button kind="quiet" size="sm" onClick={async () => setVerify((await call("audit/verify")) as { ok: boolean; brokenAtSeq?: number })}>{t("set.check")}</Button>
               <Button kind="quiet" size="sm" onClick={async () => {
-                const r = (await call("audit/export", { format: "csv" })) as { text: string }; download(r.text, "audit.csv"); notify("CSV ✓");
+                const r = (await call("audit/export", { format: "csv" })) as { text: string }; download(r.text, "audit.csv"); notify(translate("toast.csv_saved"));
               }}>CSV</Button>
               <Button kind="quiet" size="sm" onClick={() => void refreshAudit()}>⟳</Button>
             </Row>}>
@@ -168,18 +178,18 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
           <div className="max-h-80 overflow-y-auto">
             <table className="w-full text-left text-[11px]">
               <thead className="sticky top-0 bg-[var(--color-surface)] text-[var(--color-ink-3)]">
-                <tr><th className="py-1">#</th><th>{t("sess.col_time")}</th><th>actor</th><th>tool</th><th>risk</th><th>decision</th><th>{t("sess.col_result")}</th><th>device</th></tr>
+                <tr><th className="py-1">#</th><th>{t("sess.col_time")}</th><th>{t("set.col_actor")}</th><th>{t("sess.col_tool")}</th><th>{t("sess.col_risk")}</th><th>{t("set.col_decision")}</th><th>{t("sess.col_result")}</th><th>{t("set.col_device")}</th></tr>
               </thead>
               <tbody>
                 {audit.map((e) => (
                   <tr key={e.seq} className="border-t border-[var(--color-edge)]">
                     <td className="tabular-nums">{e.seq}</td>
-                    <td className="text-[var(--color-ink-3)]">{new Date(e.ts).toLocaleTimeString()}</td>
+                    <td className="text-[var(--color-ink-3)]">{new Date(e.ts).toLocaleTimeString(locale)}</td>
                     <td>{e.actor}{e.client ? ` (${e.client})` : ""}</td>
                     <td className="mono">{e.tool}</td>
                     <td>{e.risk}</td>
                     <td>{e.decision}</td>
-                    <td className={e.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>{e.ok ? "ok" : e.error_code}</td>
+                    <td className={e.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>{e.ok ? t("common.ok") : e.error_code}</td>
                     <td className="max-w-32 truncate text-[var(--color-ink-3)]" title={e.device}>{e.device ?? "-"}</td>
                   </tr>
                 ))}
@@ -192,11 +202,11 @@ export function Settings({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <Card title={t("set.agent")} icon={<Icon name="db" className="h-4 w-4" />}>
         <KeyVal rows={[
-          ["status", status.running ? t("common.ok") : t("common.error")],
+          [t("set.col_status"), status.running ? t("common.ok") : t("common.error")],
           [t("dash.adb"), <span className="mono">{status.adbPath ?? "-"}</span>],
-          ["sqlite", db.available ? <Pill tone="ok">on · v{db.schemaVersion}</Pill> : <Pill tone="warn">off (JSON)</Pill>],
+          [t("set.sqlite"), db.available ? <Pill tone="ok">{t("common.on")} · v{db.schemaVersion}</Pill> : <Pill tone="warn">{t("common.off")} (JSON)</Pill>],
           [t("dash.agent_restarts"), `${status.restarts}`],
-          [t("app.kill_switch"), hello?.killSwitch ? <Pill tone="bad">on</Pill> : <Pill tone="ok">off</Pill>],
+          [t("app.kill_switch"), hello?.killSwitch ? <Pill tone="bad">{t("common.on")}</Pill> : <Pill tone="ok">{t("common.off")}</Pill>],
           [t("dash.targets"), policy.targetPackages.join(", ") || t("dash.targets_none")],
         ]} />
         <Row className="mt-3">

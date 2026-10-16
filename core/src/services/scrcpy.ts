@@ -69,7 +69,7 @@ export class ScrcpyService {
   /** called when the mirror window closes (by the user or by a crash) */
   onExit?: () => void;
 
-  constructor(private kill: KillSwitch, private configured = "auto", extraArgs: string[] = ["--no-audio"]) {
+  constructor(private kill: KillSwitch, private configured = "auto", extraArgs: string[] = ["--no-audio"], private adbPath?: string) {
     this.extraArgs = extraArgs;
   }
 
@@ -122,7 +122,7 @@ export class ScrcpyService {
     await new Promise((r) => setTimeout(r, 700));
     if (!this.running) {
       this.stop();
-      throw new StudioError("ADB_ERROR", `scrcpy ไม่ทำงาน: ${stderr.trim().slice(0, 300) || "process exited ทันที (ตรวจอุปกรณ์/adb server)"}`);
+      throw new StudioError("ADB_ERROR", `scrcpy exited immediately — check the device and the adb server${stderr.trim() ? `: ${stderr.trim().slice(0, 300)}` : ""}`);
     }
     return { pid: child.pid!, args };
   }

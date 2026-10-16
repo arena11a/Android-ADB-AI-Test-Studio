@@ -9,13 +9,13 @@ export function KillSwitch({ active, onAsk }: { active: boolean; onAsk: () => vo
   const { t } = useI18n();
   if (active) {
     return (
-      <Button kind="danger" className="ks-active gap-2" onClick={onAsk} title="Ctrl+Shift+K">
+      <Button kind="danger" className="gap-2" onClick={onAsk} title="Ctrl+Shift+K">
         ⏻ {t("app.kill_switch_release")}
       </Button>
     );
   }
   return (
-    <Button kind="danger" gap-2 className="" onClick={onAsk} title="Ctrl+Shift+K">
+    <Button kind="danger" className="gap-2" onClick={onAsk} title="Ctrl+Shift+K">
       ⏻ {t("app.kill_switch")}
     </Button>
   );

@@ -1,10 +1,12 @@
+import { translate } from "../i18n";
+
 /** Minimal dependency-free chart: last N samples as an area+line sparkline. */
 export function Sparkline({ values, max, min = 0, unit = "", height = 48, color = "#3b82f6" }: {
   values: number[]; max?: number; min?: number; unit?: string; height?: number; color?: string;
 }) {
   const pts = values.filter((v) => typeof v === "number" && Number.isFinite(v));
   if (pts.length < 2) {
-    return <div className="flex items-end text-xs text-zinc-400" style={{ height }}>ยังไม่มีข้อมูล</div>;
+    return <div className="flex items-end text-xs text-zinc-400" style={{ height }}>{translate("common.no_data")}</div>;
   }
   const hi = max ?? Math.max(...pts, 1);
   const lo = min ?? Math.min(...pts, 0);

@@ -3,11 +3,12 @@ import { Button, Card, Empty, Icon, KeyVal, Pill, Row } from "../components/ui";
 import { StatBox } from "../components/Charts";
 import { DeviceFacts } from "../components/Devices";
 import { errMsg, useStudio } from "../store";
-import { translate, useI18n } from "../i18n";
+import { translate, useI18n, localeOf } from "../i18n";
 import type { DeviceInfo } from "@shared/types";
 
 export function Dashboard() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const locale = localeOf(lang);
   const hello = useStudio((s) => s.hello);
   const policy = useStudio((s) => s.policy);
   const devices = useStudio((s) => s.devices);
@@ -24,6 +25,7 @@ export function Dashboard() {
   const setPage = useStudio((s) => s.setPage);
   const folders = useStudio((s) => s.folders);
   const saveScreenshot = useStudio((s) => s.saveScreenshot);
+  const applyPreset = useStudio((s) => s.applyPreset);
 
   const [shot, setShot] = useState<string | null>(null);
   const device: DeviceInfo | undefined = devices.find((d) => d.serial === selected) ?? devices[0];
@@ -38,12 +40,24 @@ export function Dashboard() {
     try {
       const r = (await runTool("screenshot", { reason: translate("reason.screenshot_dash") })) as unknown as { data: { png_base64: string; bytes: number } };
       setShot(`data:image/png;base64,${r.data.png_base64}`);
-      notify(`จับภาพสำเร็จ (${(r.data.bytes / 1024).toFixed(0)} KB)`);
+      notify(translate("toast.shot_ok", { kb: (r.data.bytes / 1024).toFixed(0) }));
     } catch (e) { notify(errMsg(e), "error"); }
   };
 
   return (
     <div className="grid gap-4 xl:grid-cols-3">
+      <Row className="xl:col-span-3">
+        <span className="text-[11px] text-[var(--color-ink-3)]">{t("preset.hint")}</span>
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          {(["read", "test", "repair", "bootloader"] as const).map((p) => (
+            <Button key={p} kind="ghost" size="sm" title={t(`mode.${p === "read" ? "observe" : p === "test" ? "develop" : p}`)}
+                    onClick={() => void applyPreset(p)}>
+              {t(`preset.${p}`)}
+            </Button>
+          ))}
+        </div>
+      </Row>
+
       {(!device || !policy?.targetPackages.length) && (
         <Card title={t("dash.setup")} icon={<Icon name="shield" className="h-4 w-4" />} className="xl:col-span-3">
           <ol className="grid gap-2 sm:grid-cols-3">
@@ -66,13 +80,14 @@ export function Dashboard() {
       )}
 
       <Card title={t("dash.device")} icon={<Icon name="phone" className="h-4 w-4" />}
-            right={<Button kind="quiet" size="sm" onClick={() => void refresh()}>⟳</Button>} className="xl:col-span-2">
+            right={<Button kind="quiet" size="sm" onClick={() => void refresh()}>⟳</Button>}
+            className={device ? "xl:col-span-2" : ""}>
         {device ? (
           <>
             <DeviceFacts d={device} />
             <Row className="mt-4">
               <Button kind="primary" onClick={() => void screenshot()} disabled={hello?.killSwitch} title={t("quick.screenshot_hint")}>📸 {t("dash.screenshot")}</Button>
-              <Button kind="ghost" onClick={() => void saveScreenshot()} disabled={hello?.killSwitch} title={t("quick.screenshot_hint")}>💾 {t("dash.save_shot")}</Button>
+              <Button kind="ghost" onClick={() => void saveScreenshot()} disabled={hello?.killSwitch} title={t("quick.save_hint")}>💾 {t("dash.save_shot")}</Button>
               <Button kind="ghost" onClick={() => void act(t("dash.ui_dump"), "ui_hierarchy")} title={t("quick.ui_hint")}>🧩 {t("dash.ui_dump")}</Button>
               <Button kind="ghost" onClick={() => setPage("logs")} title={t("quick.logs_hint")}>≡ {t("dash.open_logs")}</Button>
               <Button kind="ghost" onClick={() => setPage("metrics")} title={t("quick.metrics_hint")}>◔ {t("dash.open_metrics")}</Button>
@@ -81,7 +96,7 @@ export function Dashboard() {
               <Button kind="ghost" onClick={() => setPage("security")} title={t("quick.security_hint")}>🛡 {t("nav.security")}</Button>
             </Row>
             <p className="mt-2 text-[11px] text-[var(--color-ink-3)]">
-              {t("quick.need_mode", { mode: policy?.mode ?? "safe" })}
+              {t("quick.need_mode", { mode: policy ? t(`mode.short.${policy.mode}`) : t("mode.short.safe") })}
             </p>
           </>
         ) : <Empty icon={<Icon name="phone" className="h-8 w-8" />}>{t("dash.no_device")}</Empty>}
@@ -89,8 +104,8 @@ export function Dashboard() {
 
       <Card title={t("dash.status")} icon={<Icon name="gear" className="h-4 w-4" />}>
         <KeyVal rows={[
-          [t("app.mode"), policy ? <>{policy.mode} <span className="font-normal text-[var(--color-ink-3)]">— {t(`mode.${policy.mode}`)}</span></> : "-"],
-          [t("dash.role"), policy?.role ?? "-"],
+          [t("app.mode"), policy ? <>{t(`mode.short.${policy.mode}`)}</> : "-"],
+          [t("dash.role"), policy ? t(`role.${policy.role}`) : "-"],
           [t("dash.targets"), policy?.targetPackages.length ? <span className="mono">{policy.targetPackages.join(", ")}</span> : t("dash.targets_none")],
           [t("app.kill_switch"), hello?.killSwitch
             ? <Pill tone="bad">{t("dash.kill_switch_active")}</Pill>
@@ -123,14 +138,14 @@ export function Dashboard() {
       </Card>
 
       <Card title={t("dash.audit")} icon={<Icon name="lines" className="h-4 w-4" />}
-            right={<Button kind="quiet" size="sm" onClick={() => { setPage("settings"); void refreshAudit(); }}>{t("dash.audit_open")}</Button>}
+            right={<Button kind="quiet" size="sm" onClick={() => setPage("settings")}>{t("dash.audit_open")}</Button>}
             className="xl:col-span-2">
         {audit.length ? (
           <ul className="space-y-1">
             {audit.slice(0, 8).map((e) => (
               <li key={e.seq} className="flex items-center gap-2 text-[11px]">
                 <span className="mono w-12 shrink-0 text-[var(--color-ink-3)]">#{e.seq}</span>
-                <span className="w-16 shrink-0 text-[var(--color-ink-3)]">{new Date(e.ts).toLocaleTimeString()}</span>
+                <span className="w-16 shrink-0 text-[var(--color-ink-3)]">{new Date(e.ts).toLocaleTimeString(locale)}</span>
                 <span className={`mono w-28 shrink-0 truncate ${e.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} title={e.tool}>{e.tool}</span>
                 <span className="mono w-20 shrink-0 text-[var(--color-ink-3)]">{e.actor}</span>
                 <span className="truncate">{e.ok ? e.decision : e.error_code}</span>
@@ -156,7 +171,7 @@ function LiveStats() {
   const [once, setOnce] = useState<{ cpu_sys?: number; cpu_app?: number; ram_app_kb?: number; batt_pct?: number; batt_temp_c?: number; storage_free_kb?: number; limited?: string[] } | null>(null);
 
   useEffect(() => {
-    void call("tool/call", { tool: "metrics_read", params: { reason: "dashboard", seconds: 3, interval_ms: 1000 } })
+    void call("tool/call", { tool: "metrics_read", params: { reason: translate("reason.dashboard"), seconds: 3, interval_ms: 1000 } })
       .then((r: { data?: { samples: typeof once[] } }) => r?.data?.samples?.length && setOnce(r.data.samples[r.data.samples.length - 1]))
       .catch(() => undefined);
   }, [call]);

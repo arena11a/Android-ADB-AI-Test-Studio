@@ -16,7 +16,7 @@ export function Files() {
   const [error, setError] = useState<string | null>(null);
 
   const list = async () => {
-    try { const r = (await runTool("file_list", { path, reason: "ดูโฟลเดอร์จาก UI" })) as unknown as { data: { entries: string[] } }; setEntries(r.data.entries); setError(null); }
+    try { const r = (await runTool("file_list", { path, reason: translate("reason.folder") })) as unknown as { data: { entries: string[] } }; setEntries(r.data.entries); setError(null); }
     catch (e) { setError(errMsg(e)); setEntries([]); }
   };
   useEffect(() => { if (allowed.length) void list(); }, [allowed.join(",")]);
@@ -25,9 +25,9 @@ export function Files() {
 
   const pull = async (name: string) => {
     try {
-      const r = (await runTool("file_pull", { remote: join(name), reason: `ดาวน์โหลด ${name}` })) as unknown as { data: { local: string; size: number; sha256: string } };
+      const r = (await runTool("file_pull", { remote: join(name), reason: translate("reason.download") })) as unknown as { data: { local: string; size: number; sha256: string } };
       const err = await window.adbstudio.agent.openPath(r.data.local);
-      notify(err === "" ? `บันทึกที่ ${r.data.local}` : `${r.data.local} (sha256 ${r.data.sha256.slice(0, 12)}…)`);
+      notify(err === "" ? translate("rec.saved", { p: r.data.local }) : `${r.data.local} (sha256 ${r.data.sha256.slice(0, 12)}…)`);
     } catch (e) { notify(errMsg(e), "error"); }
   };
 
@@ -42,7 +42,7 @@ export function Files() {
   };
 
   const del = async (name: string) => {
-    if (!confirm(`ลบ ${name} ออกจากเครื่อง? (ต้องผ่านการอนุมัติ)`)) return;
+    if (!confirm(t("files.delete_confirm", { name }))) return;
     try { await runTool("file_delete", { path: join(name), recursive: false, reason: `${translate("files.delete")} ${name}` }); notify(`${translate("toast.delete_done", { name })} ✓`); void list(); }
     catch (e) { notify(errMsg(e), "error"); }
   };
@@ -62,7 +62,7 @@ export function Files() {
         {entries.length ? (
           <table className="mt-3 w-full text-left">
             <thead className="text-[11px] uppercase tracking-wide text-[var(--color-ink-3)]">
-              <tr><th className="py-1.5">{t("files.browser")}</th><th className="py-1.5 text-right">{t("common.ok")}</th></tr>
+              <tr><th className="py-1.5">{t("files.name")}</th><th className="py-1.5 text-right">{t("files.actions")}</th></tr>
             </thead>
             <tbody>
               {entries.map((line) => {
@@ -72,7 +72,9 @@ export function Files() {
                   <tr key={line} className="border-t border-[var(--color-edge)]">
                     <td className="truncate py-1.5 mono" title={line}>
                       {isDir ? "📁" : "📄"}{" "}
-                      <button className="hover:text-[var(--color-brand)] hover:underline" onClick={() => (isDir ? setPath(join(name)) : void pull(name))}>{name}</button>
+                      {isDir ? (
+                        <button className="hover:text-[var(--color-brand)] hover:underline" onClick={() => setPath(join(name))}>{name}</button>
+                      ) : <span>{name}</span>}
                     </td>
                     <td className="whitespace-nowrap py-1.5 text-right">
                       {!isDir && <Button kind="quiet" size="sm" onClick={() => void pull(name)}>⬇ {t("files.download")}</Button>}

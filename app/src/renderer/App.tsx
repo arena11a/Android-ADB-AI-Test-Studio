@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { I18nProvider, MODES, ROLES, ADVANCED_MODES, useI18n, type Lang } from "./i18n";
+import { I18nProvider, MODES, useI18n, type Lang } from "./i18n";
 import { useStudio, type Page } from "./store";
 import { DevicePicker } from "./components/Devices";
 import { KillSwitch } from "./components/KillSwitch";
 import { ApprovalStack } from "./components/ApprovalModal";
-import { Button, Confirm, Icon, Modal, Pill, Row, Select, TextInput } from "./components/ui";
+import { Button, Confirm, Icon, Modal, Pill, Select, TextInput } from "./components/ui";
 import { Dashboard } from "./pages/Dashboard";
 import { Apps } from "./pages/Apps";
 import { Files } from "./pages/Files";
@@ -38,12 +38,12 @@ function Shell() {
   const page = useStudio((s) => s.page);
   const setPage = useStudio((s) => s.setPage);
   const status = useStudio((s) => s.status);
+  const aiClients = useStudio((s) => s.aiClients);
   const hello = useStudio((s) => s.hello);
   const policy = useStudio((s) => s.policy);
   const approvals = useStudio((s) => s.approvals);
   const decide = useStudio((s) => s.decide);
   const setMode = useStudio((s) => s.setMode);
-  const setModeGuarded = useStudio((s) => s.setModeGuarded);
   const toast = useStudio((s) => s.toast);
   const killSwitch = useStudio((s) => s.killSwitch);
   const refresh = useStudio((s) => s.refresh);
@@ -95,15 +95,20 @@ function Shell() {
           {connected ? t("app.agent_connected") : t("app.agent_down")}
         </Pill>
 
+        <Pill tone={aiClients > 0 ? "ok" : "neutral"}
+              title={aiClients > 0 ? t("app.ai_connected", { n: aiClients }) : t("app.ai_disconnected")}>
+          <span className={`h-1.5 w-1.5 rounded-full ${aiClients > 0 ? "bg-emerald-500" : "bg-zinc-400"}`} />
+          {aiClients > 0 ? `${t("app.ai_label")} ×${aiClients}` : t("app.ai_label")}
+        </Pill>
+
         <div className="ml-auto flex items-center gap-2">
           <select value={policy?.mode ?? "safe"} disabled={killActive} title={policy ? t(`mode.${policy.mode}`) : ""}
                   onChange={(e) => void setMode(e.target.value as typeof MODES[number])}
                   className="input !w-auto !py-1 text-xs disabled:opacity-50">
-            {MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+            {MODES.map((m) => <option key={m} value={m}>{t(`mode.short.${m}`)}</option>)}
           </select>
 
           {approvals.length > 0 && <Pill tone="warn">{t("app.pending_approvals", { n: approvals.length })}</Pill>}
-          <PresetBar />
 
           <Select value={lang} onChange={(l) => setLang(l as Lang)} className="!w-auto !py-1 text-xs"
                   options={[{ value: "th", label: "TH" }, { value: "en", label: "EN" }]} />
@@ -139,11 +144,11 @@ function Shell() {
 
           {policy && (
             <div className="mt-2 rounded-xl bg-[var(--color-surface-2)] p-2.5 text-[11px] leading-relaxed text-[var(--color-ink-2)] dark:bg-[var(--color-surface-3)]">
-              <p className="mb-1 font-semibold text-[var(--color-ink)]">{t(`mode.${policy.mode}`)}</p>
+              <p className="mb-1 font-semibold text-[var(--color-ink)]">{t(`mode.short.${policy.mode}`)}</p>
               {policy.targetPackages.length
                 ? <p className="mono break-all">targets: {policy.targetPackages.join(", ")}</p>
                 : <p className="text-amber-600 dark:text-amber-400">{t("dash.targets_none")}</p>}
-              <p className="mt-1 opacity-70">role: {policy.role} · {ROLES.length}</p>
+              <p className="mt-1 opacity-70">{t("set.role")}: {t(`role.${policy.role}`)}</p>
             </div>
           )}
         </nav>
@@ -193,7 +198,7 @@ function Shell() {
         <Confirm title={t("app.kill_switch")} confirmLabel={t("app.kill_switch")} danger
                  onCancel={() => setKillAsk(false)}
                  onConfirm={() => { setKillAsk(false); void killSwitch(true); }}
-                 body={<p className="text-[13px] leading-relaxed">ทุกคำขอใหม่ถูกปฏิเสธทันที · ยกเลิกคำขอรออนุมัติและหยุดสตรีมทั้งหมด · ปิดเซสชันและ kill โปรเซสลูกของ adb · ปลดกลับได้จากแอปนี้เท่านั้น (AI ไม่มี tool ปลด) — คีย์ลัด Ctrl+Shift+K</p>} />
+                 body={<p className="text-[13px] leading-relaxed">{t("app.kill_body")}</p>} />
       )}
 
       {firstRun && (
@@ -206,22 +211,6 @@ function Shell() {
         </Modal>
       )}
     </div>
-  );
-}
-
-/** One-click setup for humans: mode + features together. */
-function PresetBar() {
-  const { t } = useI18n();
-  const applyPreset = useStudio((s) => s.applyPreset);
-  return (
-    <Row className="gap-1">
-      {(["read", "test", "repair", "bootloader"] as const).map((p) => (
-        <Button key={p} kind="ghost" size="sm" title={t(`mode.${p === "read" ? "observe" : p === "test" ? "develop" : p}`)}
-                onClick={() => void applyPreset(p)}>
-          {t(`preset.${p}`)}
-        </Button>
-      ))}
-    </Row>
   );
 }
 
@@ -239,7 +228,7 @@ function WordDialog() {
              <Button kind="ghost" onClick={cancel}>{t("common.cancel")}</Button>
              <Button kind={prompt.mode === "bootloader" ? "danger" : "primary"} onClick={() => void confirmMode(value)}>{t("prompt.enter")}</Button>
            </>}>
-      <p className="text-[13px] leading-relaxed">{t("prompt.word_title", { mode: prompt.mode, word: prompt.word })}</p>
+      <p className="text-[13px] leading-relaxed">{t("prompt.word_hint")}</p>
       <TextInput value={value} onChange={setValue} placeholder={prompt.word} className="mono mt-3" />
       {prompt.error && <p className="mt-2 text-[12px] text-red-600 dark:text-red-400">{prompt.error}</p>}
       {prompt.mode === "bootloader" && <p className="mt-2 text-[12px] text-amber-600 dark:text-amber-400">{t("boot.warn_body")}</p>}

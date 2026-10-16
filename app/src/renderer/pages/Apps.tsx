@@ -33,7 +33,7 @@ export function Apps() {
   };
 
   const install = async () => {
-    const r = (await window.adbstudio.agent.chooseApk()) as { canceled: boolean; path?: string };
+    const r = (await window.adbstudio.agent.chooseApk(t("apps.install_apk"))) as { canceled: boolean; path?: string };
     if (r.canceled || !r.path) return;
     try {
       const res = (await runTool("app_install", { apk_path: r.path })) as unknown as { data: { newPackages: string[] } };
@@ -64,10 +64,10 @@ export function Apps() {
             <li key={target} className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-edge)] px-3 py-2">
               <span className="mono flex-1 text-[12px]">{target}</span>
               <Row>
-                <Button size="sm" onClick={() => void act(t("apps.launch"), "app_launch", { package: target, reason: "เปิดแอปจาก UI" })}>{t("apps.launch")}</Button>
-                <Button size="sm" onClick={() => void act(t("apps.stop"), "app_stop", { package: target, reason: "ปิดแอปจาก UI" })}>{t("apps.stop")}</Button>
-                <Button size="sm" onClick={() => void act(t("apps.clear_data"), "app_clear_data", { package: target, reason: "ล้างข้อมูลแอปจาก UI" })}>{t("apps.clear_data")}</Button>
-                <Button kind="warn" size="sm" onClick={() => void act(t("apps.uninstall"), "app_uninstall", { package: target, reason: "ถอนการติดตั้งจาก UI" })}>{t("apps.uninstall")}</Button>
+                <Button size="sm" onClick={() => void act(t("apps.launch"), "app_launch", { package: target, reason: translate("reason.launch") })}>{t("apps.launch")}</Button>
+                <Button size="sm" onClick={() => void act(t("apps.stop"), "app_stop", { package: target, reason: translate("reason.stop") })}>{t("apps.stop")}</Button>
+                <Button size="sm" onClick={() => void act(t("apps.clear_data"), "app_clear_data", { package: target, reason: translate("reason.clear") })}>{t("apps.clear_data")}</Button>
+                <Button kind="warn" size="sm" onClick={() => void act(t("apps.uninstall"), "app_uninstall", { package: target, reason: translate("reason.uninstall") })}>{t("apps.uninstall")}</Button>
                 <Button kind="quiet" size="sm" title={t("apps.remove_target")}
                         onClick={async () => { await setTargets(targets.filter((x) => x !== target)); }}>✕</Button>
               </Row>
@@ -84,7 +84,7 @@ export function Apps() {
 
       <Card title={t("apps.on_device")} icon={<Icon name="grid" className="h-4 w-4" />}>
         <Row>
-          <Select value={scope} onChange={setScope} options={[{ value: "target", label: t("dash.targets") }, { value: "user", label: "user apps" }]} />
+          <Select value={scope} onChange={setScope} options={[{ value: "target", label: t("dash.targets") }, { value: "user", label: t("apps.user_apps") }]} />
           <div className="flex-1"><TextInput value={filter} onChange={setFilter} placeholder={t("apps.filter")} /></div>
           <Button kind="quiet" size="sm" onClick={() => void load()}>⟳</Button>
         </Row>

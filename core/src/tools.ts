@@ -85,6 +85,7 @@ export const TOOLS: ToolDef[] = [
   def("session_stop", "session", "low", true, "Stop the current test session.", { stop_reason: z.string().max(200).optional() }),
   def("report_create", "report", "low", false, "Generate a report for a session.", {
     session_id: z.string().max(64), format: z.enum(["html", "md", "json"]).default("html"),
+    lang: z.enum(["th", "en"]).optional(),
   }),
   // power (never bootloader/recovery for AI)
   def("power_request_reboot", "power", "critical", true, "Request a normal reboot (always needs human approval).", {

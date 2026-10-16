@@ -110,7 +110,7 @@ describe("scrcpy", () => {
     const bin = path.join(dir, "scrcpy");
     writeFileSync(bin, "#!/bin/sh\necho 'ERROR: no device' >&2\nexit 1\n"); chmodSync(bin, 0o755);
     const svc = new ScrcpyService(new KillSwitch(), bin);
-    await expect(svc.start("NOPE")).rejects.toThrow(/scrcpy ไม่ทำงาน/);
+    await expect(svc.start("NOPE")).rejects.toThrow(/scrcpy exited immediately/);
     expect(svc.running).toBe(false);
   });
 
